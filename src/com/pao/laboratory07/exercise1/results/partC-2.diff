@@ -1,0 +1,8 @@
+--- expected
++++ actual
+@@ -1,4 +1,5 @@
+ PLASATA
+ PROCESATA
+ ANULATA
++Comanda este in stare finala.
+ PROCESATA

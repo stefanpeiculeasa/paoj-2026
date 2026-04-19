@@ -1,0 +1,7 @@
+--- expected
++++ actual
+@@ -2,4 +2,3 @@
+ PROCESATA
+ EXPEDIATA
+ ANULATA
+-Comanda este in stare finala.

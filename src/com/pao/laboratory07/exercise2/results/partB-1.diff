@@ -1,0 +1,14 @@
+--- expected
++++ actual
+@@ -1,2 +1,11 @@
+ PRECOMANDA: 1002 Ionescu, valoare: 400.00 lei, livrare: 2026-05-10
++STANDARD: 1004 Enache, valoare: 300.00 lei
++STANDARD: 1001 Popescu, valoare: 250.00 lei
+ ABONAMENT: 1003 Georgescu, valoare: 120.00 lei, luni: 6
++
++Comanda cu valoarea maximă: PRECOMANDA: 1002 Ionescu, valoare: 400.00 lei, livrare: 2026-05-10
++
++Sume și număr comenzi pe tip:
++STANDARD: suma = 550.00 lei, număr = 2
++PRECOMANDA: suma = 400.00 lei, număr = 1
++ABONAMENT: suma = 120.00 lei, număr = 1
