@@ -1,4 +1,4 @@
 package com.pao.laboratory06.exercise2;
 
-public interface PersoanaFizica {
+public abstract class PersoanaFizica extends Colaborator {
 }

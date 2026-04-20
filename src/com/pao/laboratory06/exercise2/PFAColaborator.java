@@ -2,37 +2,10 @@ package com.pao.laboratory06.exercise2;
 
 import java.util.Scanner;
 
-public class PFAColaborator extends Colaborator implements PersoanaFizica {
+public class PFAColaborator extends PersoanaFizica {
     private double cheltuieliLunare;
 
-    public PFAColaborator() {
-    }
-
-    @Override
-    public double calculeazaVenitNetAnual() {
-        double salMinBrutAnual = 4050 * 12; // 48600
-        double venitNet = (venitBrutLunar - cheltuieliLunare) * 12;
-
-        double impozit = 0.10 * venitNet;
-
-        double cass = 0;
-        if (venitNet < 6 * salMinBrutAnual) {
-            cass = 0.10 * (6 * salMinBrutAnual);
-        } else if (venitNet <= 72 * salMinBrutAnual) {
-            cass = 0.10 * venitNet;
-        } else {
-            cass = 0.10 * (72 * salMinBrutAnual);
-        }
-
-        double cas = 0;
-        if (venitNet >= 12 * salMinBrutAnual && venitNet <= 24 * salMinBrutAnual) {
-            cas = 0.25 * (12 * salMinBrutAnual);
-        } else if (venitNet > 24 * salMinBrutAnual) {
-            cas = 0.25 * (24 * salMinBrutAnual);
-        }
-
-        return venitNet - impozit - cass - cas;
-    }
+    private static final double SALARIU_MINIM_BRUT_ANUAL = 4050 * 12;
 
     @Override
     public void citeste(Scanner in) {
@@ -44,11 +17,37 @@ public class PFAColaborator extends Colaborator implements PersoanaFizica {
 
     @Override
     public void afiseaza() {
-        System.out.printf("PFA: %s %s, venit net anual: %.2f lei\n", nume, prenume, calculeazaVenitNetAnual());
+        System.out.println(getDescriereCuVenit());
     }
 
     @Override
-    public String tipContract() {
-        return TipColaborator.PFA.name();
+    public double calculeazaVenitNetAnual() {
+        double venitNet = (venitBrutLunar - cheltuieliLunare) * 12;
+
+        double impozit = 0.10 * venitNet;
+
+        double cass;
+        if (venitNet < 6 * SALARIU_MINIM_BRUT_ANUAL) {
+            cass = 0.10 * (6 * SALARIU_MINIM_BRUT_ANUAL);
+        } else if (venitNet <= 72 * SALARIU_MINIM_BRUT_ANUAL) {
+            cass = 0.10 * venitNet;
+        } else {
+            cass = 0.10 * (72 * SALARIU_MINIM_BRUT_ANUAL);
+        }
+
+        double cas = 0.0;
+        if (venitNet >= 12 * SALARIU_MINIM_BRUT_ANUAL) {
+            double bazaCas = (venitNet <= 24 * SALARIU_MINIM_BRUT_ANUAL)
+                    ? 12 * SALARIU_MINIM_BRUT_ANUAL
+                    : 24 * SALARIU_MINIM_BRUT_ANUAL;
+            cas = 0.25 * bazaCas;
+        }
+
+        return venitNet - impozit - cass - cas;
+    }
+
+    @Override
+    public TipColaborator getTipColaborator() {
+        return TipColaborator.PFA;
     }
 }

@@ -1,49 +1,61 @@
 package com.pao.laboratory07.exercise1;
 
-import com.pao.laboratory07.exercise1.exceptions.CannotCancelFinalOrderException;
-import com.pao.laboratory07.exercise1.exceptions.CannotRevertInitialOrderStateException;
-import com.pao.laboratory07.exercise1.exceptions.OrderIsAlreadyFinalException;
-
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Scanner;
 
 public class Main {
+
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-        // Part A
-        // load initial state
-        OrderState initialState = OrderState.valueOf(scanner.next());
-        Order order = new Order(initialState);
-        System.out.println("Initial order state: " + initialState);
 
-        while (true) {
-            OrderCommand orderCommand = OrderCommand.valueOf(scanner.next());
-            switch (orderCommand) {
-                case next -> {
-                    try {
-                        order.nextState();
-                    } catch (OrderIsAlreadyFinalException e) {
-                        System.out.println("Order is already in a final state.");
+        StareComanda stare = StareComanda.valueOf(scanner.nextLine().trim());
+        System.out.println(stare);
+
+        Deque<StareComanda> istoric = new ArrayDeque<>();
+        boolean finalAtins = false;
+
+        while (scanner.hasNextLine()) {
+            String linie = scanner.nextLine().trim();
+
+            if (linie.equals("QUIT")) {
+                if (finalAtins) {
+                    System.out.println("Comanda este in stare finala.");
+                }
+                break;
+            }
+
+            switch (linie) {
+                case "next" -> {
+                    if (stare.esteFinala()) {
+                        System.out.println("Comanda este in stare finala.");
+                    } else {
+                        istoric.push(stare);
+                        stare = stare.urmatoarea();
+                        System.out.println(stare);
+                        if (stare.esteFinala()) finalAtins = true;
                     }
                 }
-                case cancel -> {
-                    try {
-                        order.cancel();
-                    } catch (CannotCancelFinalOrderException e) {
-                        System.out.println("Cannot cancel a final state order.");
+                case "cancel" -> {
+                    if (stare.esteFinala()) {
+                        System.out.println("Comanda este in stare finala.");
+                    } else {
+                        istoric.push(stare);
+                        stare = StareComanda.ANULATA;
+                        System.out.println(stare);
+                        finalAtins = true;
                     }
                 }
-                case undo -> {
-                    try {
-                        order.undoState();
-                    } catch (CannotRevertInitialOrderStateException e) {
-                        System.out.println("Cannot undo the initial order state.");
+                case "undo" -> {
+                    if (!istoric.isEmpty()) {
+                        stare = istoric.pop();
                     }
-                }
-                case QUIT -> {
-                    System.out.println("User quit the program.");
-                    return;
+                    finalAtins = stare.esteFinala();
+                    System.out.println(stare);
                 }
             }
         }
+
+        scanner.close();
     }
 }

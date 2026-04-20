@@ -5,26 +5,21 @@ public abstract class Colaborator implements IOperatiiCitireScriere {
     protected String prenume;
     protected double venitBrutLunar;
 
-    public Colaborator(String nume, String prenume, double venitBrutLunar) {
-        this.nume = nume;
-        this.prenume = prenume;
-        this.venitBrutLunar = venitBrutLunar;
-    }
-
-    public Colaborator() {
-    }
-
     public abstract double calculeazaVenitNetAnual();
 
-    public String getNume() {
-        return nume;
+    public abstract TipColaborator getTipColaborator();
+
+    @Override
+    public String tipContract() {
+        return getTipColaborator().name();
     }
 
-    public String getPrenume() {
-        return prenume;
+    protected String getNumeComplet() {
+        return nume + " " + prenume;
     }
 
-    public double getVenitBrutLunar() {
-        return venitBrutLunar;
+    protected String getDescriereCuVenit() {
+        return tipContract() + ": " + getNumeComplet() + ", venit net anual: " +
+                String.format("%.2f lei", calculeazaVenitNetAnual());
     }
 }

@@ -2,16 +2,8 @@ package com.pao.laboratory06.exercise2;
 
 import java.util.Scanner;
 
-public class SRLColaborator extends Colaborator implements PersoanaJuridica {
+public class SRLColaborator extends PersoanaJuridica {
     private double cheltuieliLunare;
-
-    public SRLColaborator() {
-    }
-
-    @Override
-    public double calculeazaVenitNetAnual() {
-        return (venitBrutLunar - cheltuieliLunare) * 12 * 0.84;
-    }
 
     @Override
     public void citeste(Scanner in) {
@@ -23,11 +15,17 @@ public class SRLColaborator extends Colaborator implements PersoanaJuridica {
 
     @Override
     public void afiseaza() {
-        System.out.printf("SRL: %s %s, venit net anual: %.2f lei\n", nume, prenume, calculeazaVenitNetAnual());
+        System.out.println(getDescriereCuVenit());
     }
 
     @Override
-    public String tipContract() {
-        return TipColaborator.SRL.name();
+    public double calculeazaVenitNetAnual() {
+        double profitAnual = (venitBrutLunar - cheltuieliLunare) * 12;
+        return profitAnual * 0.84;
+    }
+
+    @Override
+    public TipColaborator getTipColaborator() {
+        return TipColaborator.SRL;
     }
 }
