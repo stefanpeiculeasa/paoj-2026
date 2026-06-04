@@ -51,6 +51,12 @@ public class Main {
                 cautaClient();
             } else if (input.equals("12")) {
                 stergeContMenu();
+            } else if (input.equals("13")) {
+                clientService.printeazaClientiSiConturi();
+            } else if (input.equals("14")) {
+                contService.printeazaConturiSiCarduri();
+            } else if (input.equals("15")) {
+                contService.printeazaDetaliiTranzactii();
             } else if (input.equals("0")) {
                 System.out.println("La revedere!");
                 running = false;
@@ -76,6 +82,9 @@ public class Main {
             10. Listeaza conturile clientului
             11. Cauta client
             12. Sterge/Inchide cont
+            13. [JOIN] Printeaza Clienti cu Conturile lor
+            14. [JOIN] Printeaza Conturi cu numar de Carduri
+            15. [JOIN] Printeaza Detalii Tranzactii (Sursa/Destinatie)
             0. Iesire
             
             Alegeti o optiune:
