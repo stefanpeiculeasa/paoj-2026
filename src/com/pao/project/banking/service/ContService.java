@@ -3,19 +3,25 @@ package com.pao.project.banking.service;
 import com.pao.project.banking.exception.ContInexistentException;
 import com.pao.project.banking.exception.FonduriInsuficienteException;
 import com.pao.project.banking.model.*;
+import com.pao.project.banking.repository.ContRepository;
+import com.pao.project.banking.repository.TranzactieRepository;
+import com.pao.project.banking.util.DatabaseConnection;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ContService {
 
     private static ContService instance;
-    private final Map<String, Cont> conturi;
-    private final TreeSet<Tranzactie> toateTranzactiile;
+    private final ContRepository contRepository;
+    private final TranzactieRepository tranzactieRepository;
 
     private ContService() {
-        this.conturi = new HashMap<>();
-        this.toateTranzactiile = new TreeSet<>();
+        this.contRepository = new ContRepository();
+        this.tranzactieRepository = new TranzactieRepository();
     }
 
     public static ContService getInstance() {
@@ -26,6 +32,7 @@ public class ContService {
     }
 
     public Cont adauga(String numarCont, double soldInitial, String clientId, String tipCont, double parametru) {
+        AuditService.getInstance().log("adauga_cont");
         IBANCod iban = IBANCod.din(numarCont);
         String validIban = iban.getIBANComplet();
 
@@ -38,31 +45,31 @@ public class ContService {
             throw new IllegalArgumentException("Tip cont necunoscut: " + tipCont);
         }
 
-        conturi.put(validIban, cont);
+        contRepository.save(cont);
+        
         if (soldInitial > 0) {
             Tranzactie t = new Tranzactie(null, validIban, soldInitial, TipTranzactie.DEPUNERE);
-            cont.adaugaTranzactie(t);
-            toateTranzactiile.add(t);
+            tranzactieRepository.save(t);
         }
         return cont;
     }
 
     public Cont gasesteDupaNumar(String numarCont) {
+        AuditService.getInstance().log("gaseste_cont_dupa_numar");
         IBANCod iban = IBANCod.din(numarCont);
-        Cont cont = conturi.get(iban.getIBANComplet());
-        if (cont == null) {
-            throw new ContInexistentException(iban.getIBANComplet());
-        }
-        return cont;
+        return contRepository.findById(iban.getIBANComplet())
+                .orElseThrow(() -> new ContInexistentException(iban.getIBANComplet()));
     }
 
     public List<Cont> listaToate() {
-        return new ArrayList<>(conturi.values());
+        AuditService.getInstance().log("lista_toate_conturile");
+        return contRepository.findAll();
     }
 
     public List<Cont> listaConturiClient(String clientId) {
+        AuditService.getInstance().log("lista_conturi_client");
         List<Cont> rezultat = new ArrayList<>();
-        for (Cont c : conturi.values()) {
+        for (Cont c : contRepository.findAll()) {
             if (clientId.equals(c.getClientId())) {
                 rezultat.add(c);
             }
@@ -71,60 +78,89 @@ public class ContService {
     }
 
     public void sterge(String numarCont) {
+        AuditService.getInstance().log("sterge_cont");
         Cont c = gasesteDupaNumar(numarCont);
-        conturi.remove(c.getNumarCont());
+        contRepository.delete(c.getNumarCont());
     }
 
     public void depunere(String numarCont, double suma) {
+        AuditService.getInstance().log("depunere");
         Cont cont = gasesteDupaNumar(numarCont);
         cont.depune(suma);
+        contRepository.update(cont);
+        
         Tranzactie t = new Tranzactie(null, cont.getNumarCont(), suma, TipTranzactie.DEPUNERE);
-        cont.adaugaTranzactie(t);
-        toateTranzactiile.add(t);
+        tranzactieRepository.save(t);
     }
 
     public void retragere(String numarCont, double suma) {
+        AuditService.getInstance().log("retragere");
         Cont cont = gasesteDupaNumar(numarCont);
         boolean succes = cont.retrage(suma);
         if (!succes) {
             throw new FonduriInsuficienteException("Fonduri insuficiente in contul '" + cont.getNumarCont() + "'. Sold curent: " + cont.getSold());
         }
+        contRepository.update(cont);
+        
         Tranzactie t = new Tranzactie(cont.getNumarCont(), null, suma, TipTranzactie.RETRAGERE);
-        cont.adaugaTranzactie(t);
-        toateTranzactiile.add(t);
+        tranzactieRepository.save(t);
     }
 
     public void transfer(String dinCont, String inCont, double suma) {
+        AuditService.getInstance().log("transfer");
         Cont sursa = gasesteDupaNumar(dinCont);
         Cont destinatie = gasesteDupaNumar(inCont);
-        boolean succes = sursa.retrage(suma);
-        if (!succes) {
-            throw new FonduriInsuficienteException("Fonduri insuficiente in contul '" + sursa.getNumarCont() + "'. Sold curent: " + sursa.getSold());
+        
+        Connection connection = DatabaseConnection.getInstance().getConnection();
+        try {
+            connection.setAutoCommit(false);
+            
+            boolean succes = sursa.retrage(suma);
+            if (!succes) {
+                throw new FonduriInsuficienteException("Fonduri insuficiente in contul '" + sursa.getNumarCont() + "'. Sold curent: " + sursa.getSold());
+            }
+            destinatie.depune(suma);
+            
+            contRepository.update(sursa);
+            contRepository.update(destinatie);
+            
+            Tranzactie t = new Tranzactie(sursa.getNumarCont(), destinatie.getNumarCont(), suma, TipTranzactie.TRANSFER);
+            tranzactieRepository.save(t);
+            
+            connection.commit();
+        } catch (SQLException | RuntimeException e) {
+            try {
+                connection.rollback();
+            } catch (SQLException ex) {
+                throw new RuntimeException("Eroare critica la rollback", ex);
+            }
+            throw new RuntimeException("Eroare la transfer: " + e.getMessage(), e);
+        } finally {
+            try {
+                connection.setAutoCommit(true);
+            } catch (SQLException e) {
+                throw new RuntimeException("Eroare la resetarea auto-commit", e);
+            }
         }
-        destinatie.depune(suma);
-        Tranzactie t = new Tranzactie(sursa.getNumarCont(), destinatie.getNumarCont(), suma, TipTranzactie.TRANSFER);
-        sursa.adaugaTranzactie(t);
-        destinatie.adaugaTranzactie(t);
-        toateTranzactiile.add(t);
     }
 
     public double veziSold(String numarCont) {
+        AuditService.getInstance().log("vezi_sold");
         return gasesteDupaNumar(numarCont).getSold();
     }
-
-    public List<Tranzactie> veziTranzactii(String numarCont) {
-        return gasesteDupaNumar(numarCont).getTranzactii();
+    
+    public void printeazaConturiSiCarduri() {
+        AuditService.getInstance().log("printeaza_conturi_si_carduri");
+        contRepository.printConturiWithCardCount();
+    }
+    
+    public void printeazaDetaliiTranzactii() {
+        AuditService.getInstance().log("printeaza_detalii_tranzactii");
+        tranzactieRepository.printTranzactiiDetails();
     }
 
     public ExtrasDeCont genereazaExtras(String numarCont, LocalDate start, LocalDate end) {
+        AuditService.getInstance().log("genereaza_extras");
         return new ExtrasDeCont(gasesteDupaNumar(numarCont), start, end);
-    }
-
-    public TreeSet<Tranzactie> getToateTranzactiile() {
-        return toateTranzactiile;
-    }
-
-    public Map<String, Cont> getConturi() {
-        return Collections.unmodifiableMap(conturi);
     }
 }
